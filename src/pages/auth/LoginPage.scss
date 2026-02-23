@@ -1,0 +1,179 @@
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+.login {
+  @include flex-center;
+  min-height: 100vh;
+  background: $gradient-main;
+  padding: 1rem;
+
+  // ── Panel izquierdo decorativo ──────────────────
+  &__brand {
+    display: none;
+
+    @media (min-width: 900px) {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem;
+      width: 420px;
+      color: $white;
+
+      h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+      }
+
+      p {
+        font-size: $font-base;
+        opacity: 0.85;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  // ── Tarjeta del formulario ──────────────────────
+  &__card {
+    background: $white;
+    border-radius: $radius-lg;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: $shadow-card;
+
+    @include mobile {
+      padding: 2rem 1.5rem;
+    }
+  }
+
+  // ── Header de la tarjeta ───────────────────────
+  &__header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  &__logo {
+    width: 52px;
+    height: 52px;
+    background: $gradient-main;
+    border-radius: $radius-md;
+    @include flex-center;
+    margin: 0 auto 1rem;
+
+    span {
+      font-size: 1.5rem;
+    }
+  }
+
+  &__title {
+    font-size: $font-xl;
+    font-weight: 700;
+    color: $gray-900;
+    margin-bottom: 0.25rem;
+  }
+
+  &__subtitle {
+    font-size: $font-sm;
+    color: $gray-400;
+  }
+
+  // ── Campos del formulario ──────────────────────
+  &__field {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: block;
+      font-size: $font-sm;
+      font-weight: 500;
+      color: $gray-600;
+      margin-bottom: 0.4rem;
+    }
+  }
+
+  &__input-wrapper {
+    position: relative;
+
+    .icon {
+      position: absolute;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $gray-400;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+      border: 1.5px solid #e5e7eb;
+      border-radius: $radius-sm;
+      font-size: $font-base;
+      color: $gray-900;
+      background: $gray-100;
+      transition: $transition;
+
+      &:focus {
+        @include input-focus;
+        background: $white;
+      }
+
+      &::placeholder {
+        color: $gray-400;
+      }
+    }
+  }
+
+  // ── Botón submit ───────────────────────────────
+  &__button {
+    width: 100%;
+    padding: 0.875rem;
+    background: $gradient-main;
+    color: $white;
+    border: none;
+    border-radius: $radius-sm;
+    font-size: $font-base;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: $shadow-btn;
+    transition: $transition;
+    margin-top: 0.5rem;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba($primary, 0.5);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  // ── Mensajes de feedback ───────────────────────
+  &__error,
+  &__success {
+    text-align: center;
+    font-size: $font-sm;
+    font-weight: 500;
+    padding: 0.75rem;
+    border-radius: $radius-sm;
+    margin-bottom: 1rem;
+  }
+
+  &__error {
+    color: $error;
+    background: rgba($error, 0.08);
+  }
+
+  &__success {
+    color: $success;
+    background: rgba($success, 0.08);
+  }
+}

@@ -1,0 +1,40 @@
+// ── Paleta principal ──────────────────────────────
+$primary: #6366f1; // índigo
+$primary-dark: #4f46e5;
+$primary-light: #818cf8;
+$secondary: #8b5cf6; // violeta
+
+// ── Gradientes ────────────────────────────────────
+$gradient-main: linear-gradient(135deg, $primary 0%, $secondary 100%);
+$gradient-card: linear-gradient(160deg, #ffffff 0%, #f8f7ff 100%);
+
+// ── Neutros ───────────────────────────────────────
+$gray-100: #f9fafb;
+$gray-200: #f0f2f5;
+$gray-400: #9ca3af;
+$gray-600: #4b5563;
+$gray-900: #111827;
+
+// ── Semánticos ────────────────────────────────────
+$success: #10b981;
+$error: #ef4444;
+$white: #ffffff;
+
+// ── Tipografía ────────────────────────────────────
+$font-family: "Inter", system-ui, sans-serif;
+$font-sm: 0.875rem;
+$font-base: 1rem;
+$font-lg: 1.125rem;
+$font-xl: 1.5rem;
+
+// ── Espaciado ─────────────────────────────────────
+$radius-sm: 6px;
+$radius-md: 12px;
+$radius-lg: 20px;
+
+// ── Sombras ───────────────────────────────────────
+$shadow-card: 0 20px 60px rgba(99, 102, 241, 0.15);
+$shadow-btn: 0 4px 15px rgba(99, 102, 241, 0.4);
+
+// ── Transiciones ──────────────────────────────────
+$transition: all 0.25s ease;
