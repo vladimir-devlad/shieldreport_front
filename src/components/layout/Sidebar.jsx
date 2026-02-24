@@ -31,7 +31,7 @@ const menuByRole = {
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Usuarios", path: "/users", icon: <PeopleIcon /> },
     { label: "Roles", path: "/roles", icon: <ShieldIcon /> },
-    { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> }, // ← agrega esta línea
+    { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> },
     { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> },
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
   ],
@@ -39,11 +39,13 @@ const menuByRole = {
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Usuarios", path: "/users", icon: <PeopleIcon /> },
     { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> },
+    { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> }, // ← agrega esta
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
   ],
   supervisor: [
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Mi Grupo", path: "/supervisor", icon: <GroupIcon /> },
+    { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> }, // ← agrega esta
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
   ],
   usuario: [

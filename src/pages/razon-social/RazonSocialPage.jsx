@@ -124,13 +124,33 @@ export default function RazonSocialPage() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          Razón Social
-        </Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.25}>
-          Selecciona las razones sociales con las que se trabajará
-        </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight={700}>
+            Razón Social
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mt={0.25}>
+            Selecciona las razones sociales con las que se trabajará
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<PeopleAlt />}
+          onClick={() => navigate("/razon-social/asignar")}
+          sx={{
+            borderRadius: 2,
+            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+          }}
+        >
+          Asignar RS a usuarios
+        </Button>
       </Box>
 
       {/* KPIs */}

@@ -33,7 +33,7 @@ const AppRouter = () => (
         <Route path="reportes" element={<ReportesPage />} />
         <Route path="razon-social" element={<RazonSocialPage />} />
         <Route
-          path="razon-social/:id/asignar"
+          path="razon-social/asignar"
           element={<AsignarRazonSocialPage />}
         />
         <Route path="supervisor" element={<SupervisorPage />} />

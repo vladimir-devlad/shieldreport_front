@@ -13,5 +13,8 @@ export const deleteRazonSocial = (id) =>
   axiosClient.delete(`/razon-social/${id}`);
 export const assignRazonSocial = (data) =>
   axiosClient.post("/razon-social/assign", data);
-export const removeRazonSocial = (user_id, razon_social_id) =>
-  axiosClient.delete(`/razon-social/assign/${user_id}/${razon_social_id}`);
+// export const removeRazonSocial = (user_id, razon_social_id) =>
+// axiosClient.delete(`/razon-social/assign/${user_id}/${razon_social_id}`);
+
+export const removeRazonSocial = (userId, rsId) =>
+  axiosClient.delete(`/razon-social/assign/${userId}/${rsId}`);
