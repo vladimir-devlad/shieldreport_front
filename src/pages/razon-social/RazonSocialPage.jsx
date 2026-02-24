@@ -1,343 +1,287 @@
-import { useState, useEffect, useCallback } from "react";
 import {
+  PeopleAlt,
+  Refresh,
+  Search,
+  ToggleOff,
+  ToggleOn,
+} from "@mui/icons-material";
+import {
+  Alert,
   Box,
-  Typography,
+  Button,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  InputAdornment,
+  MenuItem,
   Paper,
+  Skeleton,
+  Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   TextField,
-  MenuItem,
-  InputAdornment,
-  TablePagination,
-  Skeleton,
-  Alert,
-  Stack,
-  IconButton,
   Tooltip,
-  Button,
-  CircularProgress,
+  Typography,
 } from "@mui/material";
-import { Search, Refresh, FileDownload } from "@mui/icons-material";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-import { getReportes } from "../../api/reportesApi";
-import { getRazonesSociales } from "../../api/razonSocialApi";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  getRazonesSociales,
+  toggleRazonSocial,
+} from "../../api/razonSocialApi";
 
-const COLUMNS = [
-  { key: "sot", label: "SOT", width: 120 },
-  { key: "fecha_fecgensot", label: "Fecha Gen.", width: 110 },
-  { key: "hora_fecgensot", label: "Hora Gen.", width: 90 },
-  { key: "proceso", label: "Proceso", width: 120 },
-  { key: "tipo_trabajo", label: "Tipo Trabajo", width: 130 },
-  { key: "sub_tipo_orden", label: "Sub Tipo", width: 120 },
-  { key: "estado_sot", label: "Estado SOT", width: 120 },
-  { key: "estado_agenda", label: "Estado Agenda", width: 130 },
-  { key: "fecha_programada", label: "Fecha Prog.", width: 110 },
-  { key: "region", label: "Región", width: 100 },
-  { key: "departamento", label: "Departamento", width: 120 },
-  { key: "provincia", label: "Provincia", width: 110 },
-  { key: "distrito", label: "Distrito", width: 110 },
-  { key: "franja", label: "Franja", width: 100 },
-  { key: "lugar_venta", label: "Lugar Venta", width: 130 },
-  { key: "tipopuntoventa", label: "Tipo PV", width: 110 },
-  { key: "tipo_pdv", label: "Tipo PDV", width: 100 },
-  { key: "pdv_region", label: "PDV Región", width: 110 },
-  { key: "codusu", label: "Cód. Usuario", width: 110 },
-  { key: "cargo", label: "Cargo", width: 110 },
-  { key: "area", label: "Área", width: 100 },
-  { key: "direccion", label: "Dirección", width: 160 },
-  { key: "confirmacion", label: "Confirmación", width: 120 },
-  { key: "tipo_venta", label: "Tipo Venta", width: 110 },
-  { key: "tipo_programacion", label: "Tipo Prog.", width: 120 },
-  { key: "dilacion", label: "Dilación", width: 100 },
-  { key: "usuario_venta", label: "Usuario Venta", width: 130 },
-  { key: "ovenc_codigo", label: "OVenc Código", width: 120 },
-];
+const ESTADO_FILTER = ["todas", "activas", "inactivas"];
 
-const estadoSotColor = (estado) => {
-  const map = {
-    COMPLETADO: { bgcolor: "rgba(16,185,129,0.1)", color: "#10b981" },
-    PENDIENTE: { bgcolor: "rgba(245,158,11,0.1)", color: "#f59e0b" },
-    ANULADO: { bgcolor: "rgba(239,68,68,0.1)", color: "#ef4444" },
-    EN_PROCESO: { bgcolor: "rgba(99,102,241,0.1)", color: "#6366f1" },
-  };
-  return (
-    map[estado?.toUpperCase()] || {
-      bgcolor: "rgba(156,163,175,0.15)",
-      color: "#9ca3af",
-    }
-  );
-};
+export default function RazonSocialPage() {
+  const navigate = useNavigate();
 
-export default function ReportesPage() {
-  const [reportes, setReportes] = useState([]);
-  const [razonesSociales, setRazonesSociales] = useState([]);
+  const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
-
-  // Filtros
   const [search, setSearch] = useState("");
-  const [razonSocialId, setRazonSocialId] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState("todas");
+  const [toggling, setToggling] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    action: null,
+  });
+  const [bulkLoading, setBulkLoading] = useState(false);
 
-  // Paginación backend
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
-  const [total, setTotal] = useState(0);
-
-  // Carga razones sociales para filtro
-  useEffect(() => {
-    getRazonesSociales()
-      .then(({ data }) => setRazonesSociales(data))
-      .catch(() => {});
-  }, []);
-
-  const buildParams = useCallback(
-    (pageOverride, limitOverride) => ({
-      page: pageOverride ?? page + 1,
-      limit: limitOverride ?? rowsPerPage,
-      ...(razonSocialId && { razon_social_id: razonSocialId }),
-      ...(search && { search }),
-      ...(estadoFilter && { estado_sot: estadoFilter }),
-    }),
-    [page, rowsPerPage, razonSocialId, search, estadoFilter],
-  );
-
-  const fetchReportes = useCallback(async () => {
+  const fetchRS = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await getReportes(buildParams());
-      setReportes(data.data ?? data);
-      setTotal(data.total ?? 0);
+      const { data } = await getRazonesSociales();
+      setList(data);
     } catch {
-      setError("No se pudieron cargar los reportes");
+      setError("No se pudieron cargar las razones sociales");
     } finally {
       setLoading(false);
     }
-  }, [buildParams]);
+  }, []);
 
   useEffect(() => {
-    fetchReportes();
-  }, [fetchReportes]);
+    fetchRS();
+  }, [fetchRS]);
 
-  // ── Exportar Excel ────────────────────────────
-  const handleExport = async () => {
-    setExporting(true);
-    setError(null);
+  const handleToggle = async (rs) => {
+    setToggling(rs.id);
     try {
-      // Traemos todos los registros con los filtros activos
-      const { data } = await getReportes(buildParams(1, 99999));
-      const allRows = data.data ?? data;
-
-      if (allRows.length === 0) {
-        setError("No hay datos para exportar con los filtros actuales");
-        return;
-      }
-
-      const rows = allRows.map((row) => ({
-        SOT: row.sot ?? "",
-        "Fecha Gen.": row.fecha_fecgensot ?? "",
-        "Hora Gen.": row.hora_fecgensot ?? "",
-        Proceso: row.proceso ?? "",
-        "Tipo Trabajo": row.tipo_trabajo ?? "",
-        "Sub Tipo Orden": row.sub_tipo_orden ?? "",
-        "Estado SOT": row.estado_sot ?? "",
-        "Estado Agenda": row.estado_agenda ?? "",
-        "Fecha Prog.": row.fecha_programada ?? "",
-        Región: row.region ?? "",
-        Departamento: row.departamento ?? "",
-        Provincia: row.provincia ?? "",
-        Distrito: row.distrito ?? "",
-        Franja: row.franja ?? "",
-        "Lugar Venta": row.lugar_venta ?? "",
-        "Tipo PV": row.tipopuntoventa ?? "",
-        "Tipo PDV": row.tipo_pdv ?? "",
-        "PDV Región": row.pdv_region ?? "",
-        "Cód. Usuario": row.codusu ?? "",
-        Cargo: row.cargo ?? "",
-        Área: row.area ?? "",
-        Dirección: row.direccion ?? "",
-        Confirmación: row.confirmacion ?? "",
-        "Tipo Venta": row.tipo_venta ?? "",
-        "Tipo Prog.": row.tipo_programacion ?? "",
-        Dilación: row.dilacion ?? "",
-        "Usuario Venta": row.usuario_venta ?? "",
-        "OVenc Código": row.ovenc_codigo ?? "",
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-
-      // Ancho de columnas
-      worksheet["!cols"] = Object.keys(rows[0]).map((key) => ({
-        wch: Math.max(key.length + 2, 15),
-      }));
-
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes SOT");
-
-      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      const fecha = new Date().toISOString().split("T")[0];
-      saveAs(blob, `reportes_sot_${fecha}.xlsx`);
+      await toggleRazonSocial(rs.id);
+      setList((prev) =>
+        prev.map((item) =>
+          item.id === rs.id ? { ...item, is_active: !item.is_active } : item,
+        ),
+      );
     } catch {
-      setError("No se pudo exportar el archivo");
+      setError("No se pudo cambiar el estado de la razón social");
     } finally {
-      setExporting(false);
+      setToggling(null);
     }
   };
 
-  const handleClearFilters = () => {
-    setSearch("");
-    setRazonSocialId("");
-    setEstadoFilter("");
-    setPage(0);
+  const handleBulkToggle = async (activar) => {
+    setBulkLoading(true);
+    setError(null);
+    try {
+      const targets = list.filter((rs) => rs.is_active !== activar);
+      await Promise.all(targets.map((rs) => toggleRazonSocial(rs.id)));
+      setList((prev) => prev.map((rs) => ({ ...rs, is_active: activar })));
+    } catch {
+      setError("Ocurrió un error al actualizar las razones sociales");
+    } finally {
+      setBulkLoading(false);
+      setConfirmDialog({ open: false, action: null });
+    }
   };
 
+  const filtered = list.filter((rs) => {
+    const matchSearch =
+      !search || rs.name.toLowerCase().includes(search.toLowerCase());
+    const matchEstado =
+      estadoFilter === "todas"
+        ? true
+        : estadoFilter === "activas"
+          ? rs.is_active
+          : !rs.is_active;
+    return matchSearch && matchEstado;
+  });
+
+  const activeCount = list.filter((rs) => rs.is_active).length;
+  const inactiveCount = list.filter((rs) => !rs.is_active).length;
+
+  // ── Todo dentro del return ──────────────────────
   return (
     <Box>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 3,
-        }}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Reportes SOT
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.25}>
-            {total > 0
-              ? `${total.toLocaleString()} registros encontrados`
-              : "Consulta de reportes del sistema"}
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={
-            exporting ? (
-              <CircularProgress size={16} sx={{ color: "inherit" }} />
-            ) : (
-              <FileDownload />
-            )
-          }
-          disabled={exporting || loading}
-          onClick={handleExport}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight={700}>
+          Razón Social
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mt={0.25}>
+          Selecciona las razones sociales con las que se trabajará
+        </Typography>
+      </Box>
+
+      {/* KPIs */}
+      <Stack direction="row" spacing={2} mb={3}>
+        <Paper
           sx={{
-            borderRadius: 2,
-            borderColor: "#e2e8f0",
-            color: "text.secondary",
-            "&:hover": {
-              borderColor: "#6366f1",
-              color: "#6366f1",
-              bgcolor: "rgba(99,102,241,0.06)",
-            },
+            px: 2.5,
+            py: 1.75,
+            borderRadius: 3,
+            flex: 1,
+            textAlign: "center",
           }}
         >
-          {exporting ? "Exportando..." : "Exportar Excel"}
-        </Button>
-      </Box>
+          <Typography fontSize="0.75rem" color="text.secondary" mb={0.25}>
+            Total
+          </Typography>
+          <Typography fontWeight={700} fontSize="1.8rem">
+            {list.length}
+          </Typography>
+        </Paper>
+        <Paper
+          sx={{
+            px: 2.5,
+            py: 1.75,
+            borderRadius: 3,
+            flex: 1,
+            textAlign: "center",
+          }}
+        >
+          <Typography fontSize="0.75rem" color="text.secondary" mb={0.25}>
+            Activas
+          </Typography>
+          <Typography fontWeight={700} fontSize="1.8rem" color="#10b981">
+            {activeCount}
+          </Typography>
+        </Paper>
+        <Paper
+          sx={{
+            px: 2.5,
+            py: 1.75,
+            borderRadius: 3,
+            flex: 1,
+            textAlign: "center",
+          }}
+        >
+          <Typography fontSize="0.75rem" color="text.secondary" mb={0.25}>
+            Inactivas
+          </Typography>
+          <Typography fontWeight={700} fontSize="1.8rem" color="#9ca3af">
+            {inactiveCount}
+          </Typography>
+        </Paper>
+      </Stack>
 
       {/* Filtros */}
       <Paper sx={{ p: 2, mb: 2.5, borderRadius: 3 }}>
-        <Stack spacing={2}>
-          {/* Fila 1 */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
-              size="small"
-              placeholder="Buscar por SOT, código..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              sx={{ flex: 1 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ fontSize: 18, color: "text.secondary" }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              select
-              size="small"
-              label="Razón Social"
-              value={razonSocialId}
-              onChange={(e) => {
-                setRazonSocialId(e.target.value);
-                setPage(0);
-              }}
-              sx={{ minWidth: 200 }}
-            >
-              <MenuItem value="">Todas</MenuItem>
-              {razonesSociales.map((rs) => (
-                <MenuItem key={rs.id} value={rs.id}>
-                  {rs.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label="Estado SOT"
-              value={estadoFilter}
-              onChange={(e) => {
-                setEstadoFilter(e.target.value);
-                setPage(0);
-              }}
-              sx={{ minWidth: 150 }}
-            >
-              <MenuItem value="">Todos</MenuItem>
-              {["COMPLETADO", "PENDIENTE", "ANULADO", "EN_PROCESO"].map((e) => (
-                <MenuItem key={e} value={e}>
-                  {e}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-
-          {/* Fila 2 — fechas */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems="center"
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
+          <TextField
+            size="small"
+            placeholder="Buscar razón social..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ flex: 1 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ fontSize: 18, color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            label="Estado"
+            value={estadoFilter}
+            onChange={(e) => setEstadoFilter(e.target.value)}
+            sx={{ minWidth: 160 }}
           >
-            <Button
-              size="small"
-              variant="text"
-              color="inherit"
-              onClick={handleClearFilters}
-              sx={{ color: "text.secondary", fontSize: "0.8rem" }}
-            >
-              Limpiar filtros
-            </Button>
-            <Tooltip title="Refrescar">
-              <IconButton
-                onClick={fetchReportes}
+            {ESTADO_FILTER.map((e) => (
+              <MenuItem key={e} value={e}>
+                {e === "todas"
+                  ? "Todas"
+                  : e === "activas"
+                    ? "Solo activas"
+                    : "Solo inactivas"}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Tooltip title="Activar todas las RS">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ToggleOn />}
+                disabled={bulkLoading || activeCount === list.length}
+                onClick={() => setConfirmDialog({ open: true, action: true })}
                 sx={{
-                  border: "1px solid #e2e8f0",
                   borderRadius: 2,
-                  ml: "auto",
+                  borderColor: "#e2e8f0",
+                  color: "#10b981",
+                  whiteSpace: "nowrap",
+                  "&:hover": {
+                    borderColor: "#10b981",
+                    bgcolor: "rgba(16,185,129,0.06)",
+                  },
                 }}
               >
-                <Refresh fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Stack>
+                Activar todas
+              </Button>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Desactivar todas las RS">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ToggleOff />}
+                disabled={bulkLoading || inactiveCount === list.length}
+                onClick={() => setConfirmDialog({ open: true, action: false })}
+                sx={{
+                  borderRadius: 2,
+                  borderColor: "#e2e8f0",
+                  color: "#9ca3af",
+                  whiteSpace: "nowrap",
+                  "&:hover": {
+                    borderColor: "#ef4444",
+                    color: "#ef4444",
+                    bgcolor: "rgba(239,68,68,0.06)",
+                  },
+                }}
+              >
+                Desactivar todas
+              </Button>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Refrescar">
+            <IconButton
+              onClick={fetchRS}
+              sx={{ border: "1px solid #e2e8f0", borderRadius: 2 }}
+            >
+              <Refresh fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Paper>
 
@@ -347,159 +291,205 @@ export default function ReportesPage() {
         </Alert>
       )}
 
-      {/* Tabla con scroll horizontal */}
+      {/* Tabla */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
-        <TableContainer
-          sx={{ maxHeight: "calc(100vh - 380px)", overflowX: "auto" }}
-        >
-          <Table stickyHeader size="small">
+        <TableContainer>
+          <Table>
             <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: "0.75rem",
-                    color: "text.secondary",
-                    bgcolor: "#f8fafc",
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 3,
-                    borderRight: "1px solid #e2e8f0",
-                    minWidth: 50,
-                  }}
-                >
-                  #
-                </TableCell>
-                {COLUMNS.map((col) => (
+              <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                {[
+                  "#",
+                  "Razón Social",
+                  "Estado",
+                  "Trabajar con esta RS",
+                  "Asignar usuarios",
+                ].map((h) => (
                   <TableCell
-                    key={col.key}
+                    key={h}
                     sx={{
                       fontWeight: 600,
-                      fontSize: "0.75rem",
+                      fontSize: "0.8rem",
                       color: "text.secondary",
-                      bgcolor: "#f8fafc",
-                      minWidth: col.width,
-                      whiteSpace: "nowrap",
                     }}
                   >
-                    {col.label}
+                    {h}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
-
             <TableBody>
               {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
+                Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: COLUMNS.length + 1 }).map((_, j) => (
+                    {Array.from({ length: 5 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton variant="text" />
                       </TableCell>
                     ))}
                   </TableRow>
                 ))
-              ) : reportes.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={COLUMNS.length + 1}
+                    colSpan={5}
                     align="center"
-                    sx={{ py: 6, color: "text.secondary" }}
+                    sx={{ py: 5, color: "text.secondary" }}
                   >
-                    No se encontraron reportes
+                    No se encontraron razones sociales
                   </TableCell>
                 </TableRow>
               ) : (
-                reportes.map((row, index) => (
+                filtered.map((rs, index) => (
                   <TableRow
-                    key={row.id}
+                    key={rs.id}
                     sx={{
                       "&:hover": { bgcolor: "#f8f9ff" },
                       "&:last-child td": { border: 0 },
+                      opacity: rs.is_active ? 1 : 0.55,
+                      transition: "opacity 0.2s",
                     }}
                   >
-                    {/* # sticky */}
                     <TableCell
-                      sx={{
-                        fontSize: "0.75rem",
-                        color: "text.secondary",
-                        position: "sticky",
-                        left: 0,
-                        bgcolor: "white",
-                        borderRight: "1px solid #e2e8f0",
-                        zIndex: 1,
-                      }}
+                      sx={{ color: "text.secondary", fontSize: "0.8rem" }}
                     >
-                      {page * rowsPerPage + index + 1}
+                      {index + 1}
                     </TableCell>
-
-                    {COLUMNS.map((col) => {
-                      const value = row[col.key] ?? "—";
-                      if (
-                        col.key === "estado_sot" ||
-                        col.key === "estado_agenda"
-                      ) {
-                        const colors = estadoSotColor(value);
-                        return (
-                          <TableCell
-                            key={col.key}
-                            sx={{ whiteSpace: "nowrap" }}
+                    <TableCell sx={{ fontWeight: 500 }}>{rs.name}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={rs.is_active ? "Activa" : "Inactiva"}
+                        size="small"
+                        sx={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          bgcolor: rs.is_active
+                            ? "rgba(16,185,129,0.1)"
+                            : "rgba(156,163,175,0.15)",
+                          color: rs.is_active ? "#10b981" : "#9ca3af",
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Switch
+                          checked={rs.is_active}
+                          onChange={() => handleToggle(rs)}
+                          disabled={toggling === rs.id}
+                          size="small"
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: "#6366f1",
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              { bgcolor: "#6366f1" },
+                          }}
+                        />
+                        <Typography fontSize="0.75rem" color="text.secondary">
+                          {toggling === rs.id
+                            ? "Actualizando..."
+                            : rs.is_active
+                              ? "Se trabajará"
+                              : "No se trabajará"}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip
+                        title={
+                          !rs.is_active
+                            ? "Activa la RS para poder asignarla"
+                            : "Asignar a usuarios"
+                        }
+                      >
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={
+                              <PeopleAlt sx={{ fontSize: "14px !important" }} />
+                            }
+                            disabled={!rs.is_active}
+                            onClick={() =>
+                              navigate(`/razon-social/${rs.id}/asignar`, {
+                                state: { rs },
+                              })
+                            }
+                            sx={{
+                              borderRadius: 2,
+                              borderColor: "#e2e8f0",
+                              color: "text.secondary",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                borderColor: "#6366f1",
+                                color: "#6366f1",
+                                bgcolor: "rgba(99,102,241,0.06)",
+                              },
+                            }}
                           >
-                            {value !== "—" ? (
-                              <Chip
-                                label={value}
-                                size="small"
-                                sx={{
-                                  ...colors,
-                                  fontSize: "0.65rem",
-                                  fontWeight: 600,
-                                }}
-                              />
-                            ) : (
-                              <Typography
-                                fontSize="0.75rem"
-                                color="text.secondary"
-                              >
-                                —
-                              </Typography>
-                            )}
-                          </TableCell>
-                        );
-                      }
-                      return (
-                        <TableCell
-                          key={col.key}
-                          sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}
-                        >
-                          {value}
-                        </TableCell>
-                      );
-                    })}
+                            Asignar
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <TablePagination
-          component="div"
-          count={total}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value));
-            setPage(0);
-          }}
-          rowsPerPageOptions={[25, 50, 100]}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}–${to} de ${count.toLocaleString()}`
-          }
-          sx={{ borderTop: "1px solid #e2e8f0" }}
-        />
       </Paper>
+
+      {/* ── Diálogo de confirmación bulk — DENTRO del return ── */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() =>
+          !bulkLoading && setConfirmDialog({ open: false, action: null })
+        }
+        PaperProps={{ sx: { borderRadius: 3, maxWidth: 400 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          {confirmDialog.action ? "Activar todas" : "Desactivar todas"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText fontSize="0.9rem">
+            {confirmDialog.action
+              ? `Se activarán ${inactiveCount} razón(es) social(es) inactivas. Estarán disponibles para asignarse a usuarios.`
+              : `Se desactivarán ${activeCount} razón(es) social(es) activas. Dejarán de estar disponibles.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmDialog({ open: false, action: null })}
+            variant="outlined"
+            color="inherit"
+            disabled={bulkLoading}
+            sx={{ borderRadius: 2, borderColor: "#e2e8f0" }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => handleBulkToggle(confirmDialog.action)}
+            variant="contained"
+            disabled={bulkLoading}
+            sx={{
+              borderRadius: 2,
+              bgcolor: confirmDialog.action ? "#10b981" : "#ef4444",
+              "&:hover": {
+                bgcolor: confirmDialog.action ? "#059669" : "#dc2626",
+              },
+              px: 3,
+            }}
+          >
+            {bulkLoading ? (
+              <CircularProgress size={20} sx={{ color: "#fff" }} />
+            ) : confirmDialog.action ? (
+              "Sí, activar todas"
+            ) : (
+              "Sí, desactivar todas"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

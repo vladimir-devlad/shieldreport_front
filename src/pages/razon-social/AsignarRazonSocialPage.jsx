@@ -1,34 +1,34 @@
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { Add, ArrowBack, Remove, Search } from "@mui/icons-material";
 import {
+  Alert,
+  Avatar,
   Box,
-  Typography,
+  Button,
+  Checkbox,
+  Chip,
+  IconButton,
+  InputAdornment,
   Paper,
+  Skeleton,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  Alert,
-  Skeleton,
-  Stack,
   TextField,
-  InputAdornment,
-  Button,
-  Avatar,
-  Checkbox,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import { Search, ArrowBack, Add, Remove } from "@mui/icons-material";
-import { getUsers } from "../../api/usersApi";
+import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  getRazonSocialByUser,
   assignRazonSocial,
+  getRazonSocialByUser,
   removeRazonSocial,
 } from "../../api/razonSocialApi";
+import { getUsers } from "../../api/usersApi";
 
 export default function AsignarRazonSocialPage() {
   const { id } = useParams();

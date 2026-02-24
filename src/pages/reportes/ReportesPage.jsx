@@ -1,33 +1,34 @@
-import { useState, useEffect, useCallback } from "react";
+import { FileDownload, Refresh, Search } from "@mui/icons-material";
 import {
+  Alert,
   Box,
-  Typography,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  MenuItem,
   Paper,
+  Skeleton,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Chip,
-  TextField,
-  MenuItem,
-  InputAdornment,
   TablePagination,
-  Skeleton,
-  Alert,
-  Stack,
-  IconButton,
+  TableRow,
+  TextField,
   Tooltip,
-  Button,
+  Typography,
 } from "@mui/material";
-import { Search, Refresh, FileDownload } from "@mui/icons-material";
-import { getReportes } from "../../api/reportesApi";
+import { saveAs } from "file-saver";
+import { useCallback, useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import { getRazonesSociales } from "../../api/razonSocialApi";
+import { getReportes } from "../../api/reportesApi";
 
-// Columnas visibles
 const COLUMNS = [
-  { key: "razon_social_id", label: "Razon Social", width: 120 },
   { key: "sot", label: "SOT", width: 120 },
   { key: "fecha_fecgensot", label: "Fecha Gen.", width: 110 },
   { key: "hora_fecgensot", label: "Hora Gen.", width: 90 },
@@ -58,7 +59,6 @@ const COLUMNS = [
   { key: "ovenc_codigo", label: "OVenc Código", width: 120 },
 ];
 
-// Chips de color para estados
 const estadoSotColor = (estado) => {
   const map = {
     COMPLETADO: { bgcolor: "rgba(16,185,129,0.1)", color: "#10b981" },
@@ -78,37 +78,40 @@ export default function ReportesPage() {
   const [reportes, setReportes] = useState([]);
   const [razonesSociales, setRazonesSociales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
 
   // Filtros
   const [search, setSearch] = useState("");
   const [razonSocialId, setRazonSocialId] = useState("");
-  const [estadoFilter, setEstadoFilter] = useState("");
 
-  // Paginación — viene del backend
+  // Paginación backend
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [total, setTotal] = useState(0);
 
-  // Carga razones sociales para el filtro
+  // Carga razones sociales para filtro
   useEffect(() => {
     getRazonesSociales()
       .then(({ data }) => setRazonesSociales(data))
       .catch(() => {});
   }, []);
 
+  const buildParams = useCallback(
+    (pageOverride, limitOverride) => ({
+      page: pageOverride ?? page + 1,
+      limit: limitOverride ?? rowsPerPage,
+      ...(razonSocialId && { razon_social_id: razonSocialId }),
+      ...(search && { search }),
+    }),
+    [page, rowsPerPage, razonSocialId, search],
+  );
+
   const fetchReportes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = {
-        page: page + 1,
-        limit: rowsPerPage,
-        ...(razonSocialId && { razon_social_id: razonSocialId }),
-        ...(search && { search }),
-        ...(estadoFilter && { estado_sot: estadoFilter }),
-      };
-      const { data } = await getReportes(params);
+      const { data } = await getReportes(buildParams());
       setReportes(data.data ?? data);
       setTotal(data.total ?? 0);
     } catch {
@@ -116,16 +119,101 @@ export default function ReportesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, razonSocialId, search, estadoFilter]);
+  }, [buildParams]);
 
   useEffect(() => {
     fetchReportes();
   }, [fetchReportes]);
 
+  // ── Exportar Excel ────────────────────────────
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      // Primera llamada para saber el total
+      const first = await getReportes({
+        page: 1,
+        limit: 500,
+        ...(razonSocialId && { razon_social_id: razonSocialId }),
+        ...(search && { search }),
+      });
+
+      const totalRecords = first.data.total ?? 0;
+
+      if (totalRecords === 0) {
+        setError("No hay datos para exportar con los filtros actuales");
+        return;
+      }
+
+      const totalPages = Math.ceil(totalRecords / 500);
+
+      // Descargamos todas las páginas en paralelo
+      const requests = Array.from({ length: totalPages }, (_, i) =>
+        getReportes({
+          page: i + 1,
+          limit: 500,
+          ...(razonSocialId && { razon_social_id: razonSocialId }),
+          ...(search && { search }),
+        }),
+      );
+
+      const responses = await Promise.all(requests);
+      const allRows = responses.flatMap((r) => r.data.data ?? r.data);
+
+      const rows = allRows.map((row) => ({
+        SOT: row.sot ?? "",
+        "Fecha Gen.": row.fecha_fecgensot ?? "",
+        "Hora Gen.": row.hora_fecgensot ?? "",
+        Proceso: row.proceso ?? "",
+        "Tipo Trabajo": row.tipo_trabajo ?? "",
+        "Sub Tipo Orden": row.sub_tipo_orden ?? "",
+        "Estado SOT": row.estado_sot ?? "",
+        "Estado Agenda": row.estado_agenda ?? "",
+        "Fecha Prog.": row.fecha_programada ?? "",
+        Región: row.region ?? "",
+        Departamento: row.departamento ?? "",
+        Provincia: row.provincia ?? "",
+        Distrito: row.distrito ?? "",
+        Franja: row.franja ?? "",
+        "Lugar Venta": row.lugar_venta ?? "",
+        "Tipo PV": row.tipopuntoventa ?? "",
+        "Tipo PDV": row.tipo_pdv ?? "",
+        "PDV Región": row.pdv_region ?? "",
+        "Cód. Usuario": row.codusu ?? "",
+        Cargo: row.cargo ?? "",
+        Área: row.area ?? "",
+        Dirección: row.direccion ?? "",
+        Confirmación: row.confirmacion ?? "",
+        "Tipo Venta": row.tipo_venta ?? "",
+        "Tipo Prog.": row.tipo_programacion ?? "",
+        Dilación: row.dilacion ?? "",
+        "Usuario Venta": row.usuario_venta ?? "",
+        "OVenc Código": row.ovenc_codigo ?? "",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      worksheet["!cols"] = Object.keys(rows[0]).map((key) => ({
+        wch: Math.max(key.length + 2, 15),
+      }));
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes SOT");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const fecha = new Date().toISOString().split("T")[0];
+      saveAs(blob, `reportes_sot_${fecha}.xlsx`);
+    } catch (err) {
+      console.error("Error exportando:", err);
+      setError("No se pudo exportar: " + (err.message || "error desconocido"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleClearFilters = () => {
     setSearch("");
     setRazonSocialId("");
-    setEstadoFilter("");
     setPage(0);
   };
 
@@ -152,14 +240,27 @@ export default function ReportesPage() {
         </Box>
         <Button
           variant="outlined"
-          startIcon={<FileDownload />}
+          startIcon={
+            exporting ? (
+              <CircularProgress size={16} sx={{ color: "inherit" }} />
+            ) : (
+              <FileDownload />
+            )
+          }
+          disabled={exporting || loading}
+          onClick={handleExport}
           sx={{
             borderRadius: 2,
             borderColor: "#e2e8f0",
             color: "text.secondary",
+            "&:hover": {
+              borderColor: "#6366f1",
+              color: "#6366f1",
+              bgcolor: "rgba(99,102,241,0.06)",
+            },
           }}
         >
-          Exportar
+          {exporting ? "Exportando..." : "Exportar Excel"}
         </Button>
       </Box>
 
@@ -203,32 +304,6 @@ export default function ReportesPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              select
-              size="small"
-              label="Estado SOT"
-              value={estadoFilter}
-              onChange={(e) => {
-                setEstadoFilter(e.target.value);
-                setPage(0);
-              }}
-              sx={{ minWidth: 150 }}
-            >
-              <MenuItem value="">Todos</MenuItem>
-              {["COMPLETADO", "PENDIENTE", "ANULADO", "EN_PROCESO"].map((e) => (
-                <MenuItem key={e} value={e}>
-                  {e}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-
-          {/* Fila 2 — fechas */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems="center"
-          >
             <Button
               size="small"
               variant="text"
@@ -238,6 +313,7 @@ export default function ReportesPage() {
             >
               Limpiar filtros
             </Button>
+
             <Tooltip title="Refrescar">
               <IconButton
                 onClick={fetchReportes}
@@ -331,7 +407,7 @@ export default function ReportesPage() {
                       "&:last-child td": { border: 0 },
                     }}
                   >
-                    {/* Número de fila — sticky */}
+                    {/* # sticky */}
                     <TableCell
                       sx={{
                         fontSize: "0.75rem",
@@ -348,8 +424,6 @@ export default function ReportesPage() {
 
                     {COLUMNS.map((col) => {
                       const value = row[col.key] ?? "—";
-
-                      // Chips para estados
                       if (
                         col.key === "estado_sot" ||
                         col.key === "estado_agenda"
@@ -381,15 +455,10 @@ export default function ReportesPage() {
                           </TableCell>
                         );
                       }
-
                       return (
                         <TableCell
                           key={col.key}
-                          sx={{
-                            fontSize: "0.8rem",
-                            whiteSpace: "nowrap",
-                            color: "text.primary",
-                          }}
+                          sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}
                         >
                           {value}
                         </TableCell>
@@ -402,7 +471,6 @@ export default function ReportesPage() {
           </Table>
         </TableContainer>
 
-        {/* Paginación — backend */}
         <TablePagination
           component="div"
           count={total}

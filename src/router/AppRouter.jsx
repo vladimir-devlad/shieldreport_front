@@ -1,12 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Layout from "../components/layout/Layout";
 import { useAuth } from "../context/AuthContext";
 import LoginPage from "../pages/auth/LoginPage";
-import Layout from "../components/layout/Layout";
 import DashboardPage from "../pages/dashboard/DashboardPage";
-import UsersPage from "../pages/users/UsersPage";
-import ReportesPage from "../pages/reportes/ReportesPage";
-import RazonSocialPage from "../pages/razon-social/RazonSocialPage";
 import AsignarRazonSocialPage from "../pages/razon-social/AsignarRazonSocialPage";
+import RazonSocialPage from "../pages/razon-social/RazonSocialPage";
+import ReportesPage from "../pages/reportes/ReportesPage";
+import SupervisorPage from "../pages/supervisor/SupervisorPage";
+import UsersPage from "../pages/users/UsersPage";
 
 const PrivateRoute = ({ children }) => {
   const { token } = useAuth();
@@ -35,6 +36,7 @@ const AppRouter = () => (
           path="razon-social/:id/asignar"
           element={<AsignarRazonSocialPage />}
         />
+        <Route path="supervisor" element={<SupervisorPage />} />
         {/* Aquí irán las demás páginas */}
       </Route>
 

@@ -1,27 +1,27 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import BusinessIcon from "@mui/icons-material/Business";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import GroupIcon from "@mui/icons-material/Group";
+import PeopleIcon from "@mui/icons-material/People";
+import ShieldIcon from "@mui/icons-material/Shield";
 import {
+  Box,
+  Divider,
   Drawer,
+  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Toolbar,
-  Box,
-  IconButton,
   Tooltip,
-  Divider,
 } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import PeopleIcon from "@mui/icons-material/People";
-import ShieldIcon from "@mui/icons-material/Shield";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import GroupIcon from "@mui/icons-material/Group";
-import BusinessIcon from "@mui/icons-material/Business";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useAuth } from "../../context/AuthContext";
-import logo from "../../assets/logo.png";
+import { useLocation, useNavigate } from "react-router-dom";
 import logoIcon from "../../assets/logo-icon.png";
+import logo from "../../assets/logo.png";
+import { useAuth } from "../../context/AuthContext";
 
 const DRAWER_FULL = 240;
 const DRAWER_COLLAPSED = 68;
@@ -31,6 +31,7 @@ const menuByRole = {
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Usuarios", path: "/users", icon: <PeopleIcon /> },
     { label: "Roles", path: "/roles", icon: <ShieldIcon /> },
+    { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> }, // ← agrega esta línea
     { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> },
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
   ],
