@@ -1,3 +1,4 @@
+import { AccountCircle as AccountCircleIcon } from "@mui/icons-material";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import BusinessIcon from "@mui/icons-material/Business";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -34,6 +35,7 @@ const menuByRole = {
     { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> },
     { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> },
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
+    { label: "Mi Perfil", path: "/profile", icon: <AccountCircleIcon /> },
   ],
   admin: [
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
@@ -41,16 +43,19 @@ const menuByRole = {
     { label: "Supervisor", path: "/supervisor", icon: <GroupIcon /> },
     { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> }, // ← agrega esta
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
+    { label: "Mi Perfil", path: "/profile", icon: <AccountCircleIcon /> },
   ],
   supervisor: [
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Mi Grupo", path: "/supervisor", icon: <GroupIcon /> },
     { label: "Razón Social", path: "/razon-social", icon: <BusinessIcon /> }, // ← agrega esta
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
+    { label: "Mi Perfil", path: "/profile", icon: <AccountCircleIcon /> },
   ],
   usuario: [
     { label: "Dashboard", path: "/dashboard", icon: <DashboardIcon /> },
     { label: "Reportes", path: "/reportes", icon: <BarChartIcon /> },
+    { label: "Mi Perfil", path: "/profile", icon: <AccountCircleIcon /> },
   ],
 };
 

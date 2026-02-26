@@ -253,6 +253,7 @@ export default function ReportesPage() {
             borderRadius: 2,
             borderColor: "#e2e8f0",
             color: "text.secondary",
+            whiteSpace: "nowrap",
             "&:hover": {
               borderColor: "#6366f1",
               color: "#6366f1",
@@ -260,7 +261,9 @@ export default function ReportesPage() {
             },
           }}
         >
-          {exporting ? "Exportando..." : "Exportar Excel"}
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            {exporting ? "Exportando..." : "Exportar Excel"}
+          </Box>
         </Button>
       </Box>
 
@@ -268,7 +271,11 @@ export default function ReportesPage() {
       <Paper sx={{ p: 2, mb: 2.5, borderRadius: 3 }}>
         <Stack spacing={2}>
           {/* Fila 1 */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            flexWrap="wrap"
+          >
             <TextField
               size="small"
               placeholder="Buscar por SOT, código..."

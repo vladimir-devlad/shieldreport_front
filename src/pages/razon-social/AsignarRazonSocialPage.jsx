@@ -148,6 +148,7 @@ export default function AsignarRazonSocialPage() {
           assignRazonSocial({ user_id: userId, razon_social_ids: selectedRS }),
         ),
       );
+      // Actualizamos mapa local
       setAssignMap((prev) => {
         const next = { ...prev };
         selectedUsers.forEach((uid) => {
@@ -161,10 +162,8 @@ export default function AsignarRazonSocialPage() {
         `RS asignadas correctamente a ${selectedUsers.length} usuario(s)`,
       );
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(
-        err.response?.data?.detail || "Error al asignar razones sociales",
-      );
+    } catch {
+      setError("Error al asignar razones sociales");
     } finally {
       setSaving(false);
     }
@@ -182,6 +181,7 @@ export default function AsignarRazonSocialPage() {
           selectedRS.map((rsId) => removeRazonSocial(userId, rsId)),
         ),
       );
+      // Actualizamos mapa local
       setAssignMap((prev) => {
         const next = { ...prev };
         selectedUsers.forEach((uid) => {
@@ -195,10 +195,8 @@ export default function AsignarRazonSocialPage() {
         `RS desasignadas correctamente de ${selectedUsers.length} usuario(s)`,
       );
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(
-        err.response?.data?.detail || "Error al desasignar razones sociales",
-      );
+    } catch {
+      setError("Error al desasignar razones sociales");
     } finally {
       setSaving(false);
     }
@@ -222,10 +220,8 @@ export default function AsignarRazonSocialPage() {
           [userId]: [...(prev[userId] ?? []), rsId],
         }));
       }
-    } catch (err) {
-      setError(
-        err.response?.data?.detail || "Error al actualizar la asignación",
-      );
+    } catch {
+      setError("Error al actualizar la asignación");
     } finally {
       setSaving(false);
     }

@@ -29,7 +29,7 @@ const theme = createTheme({
     button: { textTransform: "none", fontWeight: 600 },
   },
   shape: {
-    borderRadius: 10,
+    borderRadius: 8,
   },
   components: {
     MuiButton: {

@@ -1,23 +1,22 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Circle, Logout, Notifications } from "@mui/icons-material";
 import {
   AppBar,
-  Toolbar,
-  Typography,
-  Box,
   Avatar,
-  Chip,
-  IconButton,
-  Tooltip,
-  InputBase,
   Badge,
-  Popover,
+  Box,
+  Chip,
+  Divider,
+  IconButton,
   List,
   ListItem,
   ListItemText,
-  Divider,
+  Popover,
+  Toolbar,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import { Logout, Search, Notifications, Circle } from "@mui/icons-material";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const ROLE_LABELS = {
@@ -34,15 +33,15 @@ const ROLE_COLORS = {
   usuario: "default",
 };
 
-// Mapa de rutas → títulos
 const PAGE_TITLES = {
-  "/": "Dashboard",
+  "/dashboard": "Dashboard",
   "/users": "Usuarios",
   "/roles": "Roles",
   "/razon-social": "Razón Social",
+  "/razon-social/asignar": "Asignar Razón Social",
   "/reportes": "Reportes",
   "/supervisor": "Supervisor",
-  "/perfil": "Mi Perfil",
+  "/profile": "Mi Perfil",
 };
 
 const MOCK_NOTIFICATIONS = [
@@ -61,27 +60,27 @@ const MOCK_NOTIFICATIONS = [
   },
 ];
 
-export default function Topbar({ sidebarWidth }) {
+export default function Topbar({ sidebarWidth, isMobile }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [search, setSearch] = useState("");
+
+  const [anchorNotif, setAnchorNotif] = useState(null);
 
   const title = PAGE_TITLES[pathname] || "Dashboard";
   const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
   const fullName =
-    [user?.name, user?.lastName].filter(Boolean).join(" ") ||
+    [user?.name, user?.last_name].filter(Boolean).join(" ") ||
     user?.username ||
     "Usuario";
-  const initial = fullName[0].toUpperCase();
+  const initial = fullName[0]?.toUpperCase() ?? "U";
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
-  const handleOpenNotif = (e) => setAnchorEl(e.currentTarget);
-  const handleCloseNotif = () => setAnchorEl(null);
+  const handleOpenNotif = (e) => setAnchorNotif(e.currentTarget);
+  const handleCloseNotif = () => setAnchorNotif(null);
 
   return (
     <>
@@ -93,9 +92,10 @@ export default function Topbar({ sidebarWidth }) {
           bgcolor: "#fff",
           borderBottom: "1px solid #e2e8f0",
           color: "#0f172a",
-          width: `calc(100% - ${sidebarWidth}px)`,
-          ml: `${sidebarWidth}px`, // ← se desplaza a la derecha
-          transition: "width 0.3s ease, margin-left 0.3s ease",
+          left: isMobile ? 0 : sidebarWidth,
+          width: isMobile ? "100%" : `calc(100% - ${sidebarWidth}px)`,
+          transition: "left 0.25s ease, width 0.25s ease",
+          boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
         }}
       >
         <Toolbar
@@ -103,20 +103,26 @@ export default function Topbar({ sidebarWidth }) {
             justifyContent: "space-between",
             gap: 2,
             minHeight: "64px !important",
+            px: { xs: 2, sm: 3 },
           }}
         >
-          {/* Título automático según ruta */}
-          <Box>
+          {/* ── Izquierda: Título + fecha ── */}
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography
               variant="h6"
               fontWeight={700}
               color="text.primary"
               noWrap
               lineHeight={1.2}
+              fontSize={{ xs: "0.95rem", sm: "1.1rem" }}
             >
               {title}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: { xs: "none", sm: "block" } }}
+            >
               {new Date().toLocaleDateString("es-PE", {
                 weekday: "long",
                 year: "numeric",
@@ -126,93 +132,84 @@ export default function Topbar({ sidebarWidth }) {
             </Typography>
           </Box>
 
-          {/* Acciones derecha */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            {/* Buscador */}
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                bgcolor: "#f1f5f9",
-                borderRadius: 2,
-                px: 1.5,
-                py: 0.5,
-                gap: 1,
-                border: "1px solid transparent",
-                transition: "all 0.2s",
-                "&:focus-within": {
-                  bgcolor: "#fff",
-                  border: "1px solid #6366f1",
-                  boxShadow: "0 0 0 3px rgba(99,102,241,0.1)",
-                },
-              }}
-            >
-              <Search sx={{ color: "#94a3b8", fontSize: 18 }} />
-              <InputBase
-                placeholder="Buscar..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                sx={{ fontSize: "0.875rem", width: 380 }}
-              />
-            </Box>
-
+          {/* ── Derecha: Notificaciones + Avatar + Logout ── */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: { xs: 0.5, sm: 1.5 },
+            }}
+          >
             {/* Notificaciones */}
             <Tooltip title="Notificaciones">
-              <IconButton
-                onClick={handleOpenNotif}
-                size="small"
-                sx={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 2,
-                  "&:hover": {
-                    bgcolor: "rgba(99,102,241,0.06)",
-                    borderColor: "#6366f1",
-                  },
-                }}
-              >
-                <Badge badgeContent={unreadCount} color="error">
-                  <Notifications fontSize="small" sx={{ color: "#64748b" }} />
+              <IconButton onClick={handleOpenNotif} size="small">
+                <Badge
+                  badgeContent={unreadCount}
+                  color="error"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      fontSize: "0.6rem",
+                      minWidth: 16,
+                      height: 16,
+                    },
+                  }}
+                >
+                  <Notifications sx={{ fontSize: 22, color: "#64748b" }} />
                 </Badge>
               </IconButton>
             </Tooltip>
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-
             {/* Avatar + info usuario */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-              <Avatar
+            <Tooltip title="Mi perfil">
+              <Box
+                onClick={() => navigate("/profile")}
                 sx={{
-                  width: 36,
-                  height: 36,
-                  fontSize: "0.875rem",
-                  fontWeight: 700,
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  cursor: "pointer",
+                  borderRadius: 2,
+                  px: { xs: 0.5, sm: 1 },
+                  py: 0.5,
+                  "&:hover": { bgcolor: "rgba(99,102,241,0.06)" },
+                  transition: "background 0.15s",
                 }}
               >
-                {initial}
-              </Avatar>
-
-              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                <Typography
-                  fontSize="0.875rem"
-                  fontWeight={600}
-                  lineHeight={1.2}
-                >
-                  {fullName}
-                </Typography>
-                <Chip
-                  label={ROLE_LABELS[user?.role] || user?.role}
-                  color={ROLE_COLORS[user?.role] || "default"}
-                  size="small"
+                <Avatar
                   sx={{
-                    height: 18,
-                    fontSize: "0.65rem",
-                    fontWeight: 600,
-                    mt: 0.25,
+                    width: 36,
+                    height: 36,
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                   }}
-                />
+                >
+                  {initial}
+                </Avatar>
+
+                <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                  <Typography
+                    fontSize="0.875rem"
+                    fontWeight={600}
+                    lineHeight={1.2}
+                    noWrap
+                  >
+                    {fullName}
+                  </Typography>
+                  <Chip
+                    label={ROLE_LABELS[user?.role] || user?.role}
+                    color={ROLE_COLORS[user?.role] || "default"}
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.65rem",
+                      fontWeight: 600,
+                      mt: 0.25,
+                    }}
+                  />
+                </Box>
               </Box>
-            </Box>
+            </Tooltip>
 
             {/* Logout */}
             <Tooltip title="Cerrar sesión">
@@ -220,13 +217,11 @@ export default function Topbar({ sidebarWidth }) {
                 onClick={handleLogout}
                 size="small"
                 sx={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 2,
                   "&:hover": {
+                    color: "#ef4444",
                     bgcolor: "rgba(239,68,68,0.06)",
-                    color: "error.main",
-                    borderColor: "error.light",
                   },
+                  color: "#64748b",
                 }}
               >
                 <Logout fontSize="small" />
@@ -236,23 +231,24 @@ export default function Topbar({ sidebarWidth }) {
         </Toolbar>
       </AppBar>
 
-      {/* Popover notificaciones */}
+      {/* ── Popover notificaciones ── */}
       <Popover
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
+        open={Boolean(anchorNotif)}
+        anchorEl={anchorNotif}
         onClose={handleCloseNotif}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         PaperProps={{
           sx: {
             mt: 1,
-            width: 320,
+            width: { xs: 290, sm: 320 },
             borderRadius: 3,
             boxShadow: "0 8px 30px rgba(0,0,0,0.1)",
             border: "1px solid #e2e8f0",
           },
         }}
       >
+        {/* Header notificaciones */}
         <Box
           sx={{
             px: 2,
@@ -276,6 +272,7 @@ export default function Topbar({ sidebarWidth }) {
           )}
         </Box>
 
+        {/* Lista */}
         <List disablePadding>
           {MOCK_NOTIFICATIONS.map((notif, index) => (
             <Box key={notif.id}>
@@ -325,6 +322,7 @@ export default function Topbar({ sidebarWidth }) {
           ))}
         </List>
 
+        {/* Footer */}
         <Box
           sx={{
             px: 2,
