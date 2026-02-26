@@ -1,181 +1,454 @@
 import {
+  ArrowForward,
+  Business,
+  Group,
+  People,
+  PersonOff,
+  Shield,
+  WavingHand,
+} from "@mui/icons-material";
+import {
   Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
-  Button,
+  Grid,
+  Paper,
+  Skeleton,
+  Stack,
+  Typography,
 } from "@mui/material";
-import DownloadIcon from "@mui/icons-material/Download";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getRazonesSociales } from "../../api/razonSocialApi";
+import { getUsers, getUsersSinSuper } from "../../api/usersApi";
+import { useAuth } from "../../context/AuthContext";
 
-const recentData = [
-  {
-    id: 1,
-    name: "Carlos Méndez",
-    action: "Registro nuevo",
-    date: "2026-02-20",
-    status: "Activo",
-  },
-  {
-    id: 2,
-    name: "Ana Torres",
-    action: "Actualización",
-    date: "2026-02-19",
-    status: "Activo",
-  },
-  {
-    id: 3,
-    name: "Luis Ramírez",
-    action: "Registro nuevo",
-    date: "2026-02-18",
-    status: "Inactivo",
-  },
-  {
-    id: 4,
-    name: "María Castillo",
-    action: "Cierre de sesión",
-    date: "2026-02-18",
-    status: "Activo",
-  },
-  {
-    id: 5,
-    name: "Jorge Palomino",
-    action: "Actualización",
-    date: "2026-02-17",
-    status: "Activo",
-  },
-];
+// ── Accesos rápidos por rol ───────────────────────
+const quickAccessByRole = {
+  superadmin: [
+    {
+      label: "Gestionar usuarios",
+      path: "/users",
+      icon: <People sx={{ fontSize: 20 }} />,
+      color: "#6366f1",
+    },
+    {
+      label: "Supervisores",
+      path: "/supervisor",
+      icon: <Group sx={{ fontSize: 20 }} />,
+      color: "#8b5cf6",
+    },
+    {
+      label: "Razón Social",
+      path: "/razon-social",
+      icon: <Business sx={{ fontSize: 20 }} />,
+      color: "#06b6d4",
+    },
+    {
+      label: "Asignar RS",
+      path: "/razon-social/asignar",
+      icon: <Shield sx={{ fontSize: 20 }} />,
+      color: "#10b981",
+    },
+  ],
+  admin: [
+    {
+      label: "Gestionar usuarios",
+      path: "/users",
+      icon: <People sx={{ fontSize: 20 }} />,
+      color: "#6366f1",
+    },
+    {
+      label: "Supervisores",
+      path: "/supervisor",
+      icon: <Group sx={{ fontSize: 20 }} />,
+      color: "#8b5cf6",
+    },
+    {
+      label: "Asignar RS",
+      path: "/razon-social/asignar",
+      icon: <Shield sx={{ fontSize: 20 }} />,
+      color: "#10b981",
+    },
+  ],
+  supervisor: [
+    {
+      label: "Mi Grupo",
+      path: "/supervisor",
+      icon: <Group sx={{ fontSize: 20 }} />,
+      color: "#6366f1",
+    },
+    {
+      label: "Asignar RS",
+      path: "/razon-social/asignar",
+      icon: <Shield sx={{ fontSize: 20 }} />,
+      color: "#10b981",
+    },
+  ],
+  usuario: [
+    {
+      label: "Reportes",
+      path: "/reportes",
+      icon: <Shield sx={{ fontSize: 20 }} />,
+      color: "#6366f1",
+    },
+  ],
+};
 
-const DashboardPage = () => {
-  const exportToExcel = () => {
-    // ====== Encabezado Corporativo ======
-    const header = [
-      ["EMPRESA XYZ S.A.C."],
-      ["Reporte de Actividad Reciente"],
-      [`Fecha de generación: ${new Date().toLocaleDateString()}`],
-      [],
-    ];
+// ── Stat card ────────────────────────────────────
+function StatCard({ icon, label, value, color, loading, sub }) {
+  return (
+    <Paper
+      sx={{
+        borderRadius: 3,
+        p: 2.5,
+        border: "1px solid #f0f0f0",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Decoración de fondo */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: -16,
+          right: -16,
+          width: 72,
+          height: 72,
+          borderRadius: "50%",
+          bgcolor: `${color}18`,
+        }}
+      />
 
-    // ====== Datos formateados ======
-    const data = recentData.map((item) => ({
-      ID: item.id,
-      Nombre: item.name,
-      Acción: item.action,
-      Fecha: new Date(item.date).toLocaleDateString(),
-      Estado: item.status,
-    }));
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+      >
+        <Box>
+          <Typography
+            fontSize="0.78rem"
+            color="text.secondary"
+            fontWeight={500}
+            mb={0.75}
+          >
+            {label}
+          </Typography>
+          {loading ? (
+            <Skeleton variant="text" width={48} height={40} />
+          ) : (
+            <Typography
+              fontSize="2rem"
+              fontWeight={800}
+              lineHeight={1}
+              color="#1e293b"
+            >
+              {value ?? "—"}
+            </Typography>
+          )}
+          {sub && !loading && (
+            <Typography fontSize="0.72rem" color="text.disabled" mt={0.5}>
+              {sub}
+            </Typography>
+          )}
+        </Box>
+        <Box
+          sx={{
+            width: 42,
+            height: 42,
+            borderRadius: 2,
+            bgcolor: `${color}15`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
 
-    const worksheet = XLSX.utils.json_to_sheet(data, { origin: "A5" });
+// ── Quick access card ────────────────────────────
+function QuickCard({ item }) {
+  const navigate = useNavigate();
+  return (
+    <Paper
+      onClick={() => navigate(item.path)}
+      sx={{
+        borderRadius: 3,
+        p: 2,
+        cursor: "pointer",
+        border: "1px solid #f0f0f0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        transition: "all 0.15s",
+        "&:hover": {
+          borderColor: item.color,
+          transform: "translateY(-2px)",
+          boxShadow: `0 4px 20px ${item.color}20`,
+        },
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Box
+          sx={{
+            width: 38,
+            height: 38,
+            borderRadius: 2,
+            bgcolor: `${item.color}12`,
+            color: item.color,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {item.icon}
+        </Box>
+        <Typography fontWeight={600} fontSize="0.875rem">
+          {item.label}
+        </Typography>
+      </Stack>
+      <ArrowForward sx={{ fontSize: 16, color: "text.disabled" }} />
+    </Paper>
+  );
+}
 
-    // Insertar encabezado arriba
-    XLSX.utils.sheet_add_aoa(worksheet, header, { origin: "A1" });
+// ── Página principal ─────────────────────────────
+export default function DashboardPage() {
+  const { user, hasRole } = useAuth();
+  const navigate = useNavigate();
 
-    // ====== Ajustar ancho automático ======
-    worksheet["!cols"] = [
-      { wch: 8 }, // ID
-      { wch: 20 }, // Nombre
-      { wch: 20 }, // Acción
-      { wch: 15 }, // Fecha
-      { wch: 15 }, // Estado
-    ];
+  const [stats, setStats] = useState({
+    users: null,
+    rs: null,
+    sinSuper: null,
+    activos: null,
+  });
+  const [loading, setLoading] = useState(true);
 
-    // ====== Crear libro ======
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Actividad");
+  // Saludo dinámico por hora
+  const hora = new Date().getHours();
+  const saludo =
+    hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+  const firstName = user?.name ?? "Usuario";
 
-    // ====== Generar archivo ======
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+  // Accesos rápidos según rol
+  const role = user?.role?.toLowerCase();
+  const accesos = quickAccessByRole[role] ?? quickAccessByRole.usuario;
 
-    const fileData = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [{ data: usersData }, { data: rsData }] = await Promise.all([
+          getUsers(),
+          getRazonesSociales(),
+        ]);
 
-    saveAs(fileData, "reporte_actividad.xlsx");
-  };
+        const allUsers = Array.isArray(usersData)
+          ? usersData
+          : (usersData.data ?? []);
+        const allRS = Array.isArray(rsData) ? rsData : (rsData.data ?? []);
+
+        const activos = allUsers.filter((u) => u.is_active).length;
+        const rsActivas = allRS.filter((r) => r.is_active).length;
+
+        // Solo superadmin/admin necesitan saber usuarios sin supervisor
+        let sinSuper = null;
+        if (hasRole("superadmin") || hasRole("admin")) {
+          try {
+            const { data: sinSuperData } = await getUsersSinSuper({
+              page: 1,
+              limit: 1,
+            });
+            sinSuper = sinSuperData.total ?? 0;
+          } catch {
+            sinSuper = 0;
+          }
+        }
+
+        setStats({
+          users: allUsers.length,
+          activos,
+          rs: rsActivas,
+          sinSuper,
+        });
+      } catch {
+        // Si falla, dejamos nulls — el UI lo maneja con "—"
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [hasRole]);
 
   return (
     <Box>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
+      {/* ── Bienvenida ── */}
+      <Paper
+        sx={{
+          borderRadius: 3,
+          p: 3.5,
+          mb: 3,
+          background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+          color: "#fff",
+          position: "relative",
+          overflow: "hidden",
+        }}
       >
-        {/* Lado izquierdo */}
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Dashboard
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Resumen general del sistema
-          </Typography>
-        </Box>
+        {/* Círculos decorativos */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: -40,
+            right: -40,
+            width: 180,
+            height: 180,
+            borderRadius: "50%",
+            bgcolor: "rgba(255,255,255,0.07)",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: -60,
+            right: 80,
+            width: 120,
+            height: 120,
+            borderRadius: "50%",
+            bgcolor: "rgba(255,255,255,0.05)",
+          }}
+        />
 
-        {/* Lado derecho */}
-        <Button
-          variant="contained"
-          startIcon={<DownloadIcon />}
-          onClick={exportToExcel}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ sm: "center" }}
+          justifyContent="space-between"
+          spacing={2}
         >
-          Descargar Excel
-        </Button>
-      </Box>
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+              <WavingHand sx={{ fontSize: 22, color: "#fcd34d" }} />
+              <Typography fontSize="0.9rem" sx={{ opacity: 0.85 }}>
+                {saludo}
+              </Typography>
+            </Stack>
+            <Typography
+              fontSize="1.6rem"
+              fontWeight={800}
+              lineHeight={1.2}
+              mb={1}
+            >
+              {firstName}
+            </Typography>
+            <Chip
+              label={user?.role ?? "—"}
+              size="small"
+              sx={{
+                bgcolor: "rgba(255,255,255,0.2)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "0.72rem",
+                textTransform: "capitalize",
+              }}
+            />
+          </Box>
 
-      <Paper sx={{ borderRadius: 3 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Acción</TableCell>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Estado</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {recentData.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.id}</TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
-                  <TableCell>{row.action}</TableCell>
-                  <TableCell>
-                    {new Date(row.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={row.status}
-                      size="small"
-                      sx={{
-                        bgcolor:
-                          row.status === "Activo"
-                            ? "rgba(16,185,129,0.1)"
-                            : "rgba(156,163,175,0.15)",
-                        color: row.status === "Activo" ? "#10b981" : "#9ca3af",
-                        fontWeight: 600,
-                        fontSize: "0.7rem",
-                      }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+          <Box sx={{ textAlign: { sm: "right" }, flexShrink: 0 }}>
+            <Typography fontSize="0.78rem" sx={{ opacity: 0.7 }}>
+              {new Date().toLocaleDateString("es-PE", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </Typography>
+          </Box>
+        </Stack>
       </Paper>
+
+      {/* ── Stats ── */}
+      {(hasRole("superadmin") || hasRole("admin")) && (
+        <>
+          <Typography
+            fontWeight={700}
+            fontSize="0.85rem"
+            color="text.secondary"
+            textTransform="uppercase"
+            letterSpacing={0.5}
+            mb={1.5}
+          >
+            Resumen
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                icon={<People sx={{ fontSize: 22 }} />}
+                label="Total usuarios"
+                value={stats.users}
+                color="#6366f1"
+                loading={loading}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                icon={<People sx={{ fontSize: 22 }} />}
+                label="Usuarios activos"
+                value={stats.activos}
+                color="#10b981"
+                loading={loading}
+                sub={
+                  stats.users
+                    ? `${Math.round((stats.activos / stats.users) * 100)}% del total`
+                    : null
+                }
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                icon={<Business sx={{ fontSize: 22 }} />}
+                label="RS activas"
+                value={stats.rs}
+                color="#06b6d4"
+                loading={loading}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard
+                icon={<PersonOff sx={{ fontSize: 22 }} />}
+                label="Sin supervisor"
+                value={stats.sinSuper}
+                color="#f59e0b"
+                loading={loading}
+                sub="Usuarios sin asignar"
+              />
+            </Grid>
+          </Grid>
+        </>
+      )}
+
+      {/* ── Accesos rápidos ── */}
+      <Typography
+        fontWeight={700}
+        fontSize="0.85rem"
+        color="text.secondary"
+        textTransform="uppercase"
+        letterSpacing={0.5}
+        mb={1.5}
+      >
+        Accesos rápidos
+      </Typography>
+      <Grid container spacing={2}>
+        {accesos.map((item) => (
+          <Grid key={item.path} size={{ xs: 12, sm: 6, md: 4 }}>
+            <QuickCard item={item} />
+          </Grid>
+        ))}
+      </Grid>
     </Box>
   );
-};
-
-export default DashboardPage;
+}

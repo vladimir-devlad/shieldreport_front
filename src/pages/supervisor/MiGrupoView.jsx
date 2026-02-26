@@ -197,7 +197,7 @@ export default function MiGrupoView() {
       </Paper>
 
       {/* Acciones */}
-      <Stack direction="row" spacing={2} mb={3}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={3}>
         <Button
           variant="contained"
           startIcon={<PersonAdd />}

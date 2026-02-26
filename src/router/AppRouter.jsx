@@ -3,6 +3,7 @@ import Layout from "../components/layout/Layout";
 import { useAuth } from "../context/AuthContext";
 import LoginPage from "../pages/auth/LoginPage";
 import DashboardPage from "../pages/dashboard/DashboardPage";
+import ProfilePage from "../pages/profile/ProfilePage";
 import AsignarRazonSocialPage from "../pages/razon-social/AsignarRazonSocialPage";
 import RazonSocialPage from "../pages/razon-social/RazonSocialPage";
 import ReportesPage from "../pages/reportes/ReportesPage";
@@ -37,6 +38,7 @@ const AppRouter = () => (
           element={<AsignarRazonSocialPage />}
         />
         <Route path="supervisor" element={<SupervisorPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         {/* Aquí irán las demás páginas */}
       </Route>
 

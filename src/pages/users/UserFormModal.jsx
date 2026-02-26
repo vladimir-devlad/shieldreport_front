@@ -1,8 +1,10 @@
 import {
   Add,
+  Business,
   Close,
   Email,
   Phone,
+  Search,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
@@ -10,6 +12,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -21,11 +24,12 @@ import {
   IconButton,
   InputAdornment,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getRazonesSociales } from "../../api/razonSocialApi";
 import { getRoles } from "../../api/rolesApi";
 import { createUser, updateUser } from "../../api/usersApi";
@@ -56,30 +60,28 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState(null);
   const [showPass, setShowPass] = useState(false);
+  const [searchRS, setSearchRS] = useState("");
 
   const [emailInput, setEmailInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
-  // Carga roles y razones sociales
+  // ── Carga roles y razones sociales ──────────────
   useEffect(() => {
     if (!open) return;
     setLoadingCats(true);
     Promise.all([getRoles(), getRazonesSociales()])
       .then(([{ data: rolesData }, { data: rsData }]) => {
         setRoles(rolesData);
-        setRazones(
-          Array.isArray(rsData)
-            ? rsData.filter((r) => r.is_active)
-            : (rsData.data ?? []).filter((r) => r.is_active),
-        );
+        const allRS = Array.isArray(rsData) ? rsData : (rsData.data ?? []);
+        setRazones(allRS.filter((r) => r.is_active));
       })
       .catch(() => {})
       .finally(() => setLoadingCats(false));
   }, [open]);
 
-  // Carga datos del usuario — espera a que roles estén cargados
+  // ── Carga datos del usuario al editar ───────────
   useEffect(() => {
     if (!open) return;
     if (isEdit && user) {
@@ -90,7 +92,7 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
         second_last_name: user.second_last_name ?? "",
         username: user.username ?? "",
         password: "",
-        role_id: user.role_id ?? "", // string vacío si no hay
+        role_id: user.role_id ?? "",
         is_active: user.is_active ?? true,
         razon_social_ids: user.razon_sociales?.map((r) => r.id) ?? [],
         emails: user.emails?.map((e) => e.email ?? e) ?? [],
@@ -100,6 +102,7 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
       setForm(INITIAL_FORM);
     }
     setError(null);
+    setSearchRS("");
     setEmailInput("");
     setPhoneInput("");
     setEmailError("");
@@ -109,6 +112,38 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ── Razón Social con checkbox ────────────────────
+  const filteredRS = useMemo(
+    () =>
+      razones.filter(
+        (r) =>
+          !searchRS || r.name.toLowerCase().includes(searchRS.toLowerCase()),
+      ),
+    [razones, searchRS],
+  );
+
+  const handleToggleRS = (id) => {
+    setForm((prev) => ({
+      ...prev,
+      razon_social_ids: prev.razon_social_ids.includes(id)
+        ? prev.razon_social_ids.filter((x) => x !== id)
+        : [...prev.razon_social_ids, id],
+    }));
+  };
+
+  const handleSelectAllRS = () => {
+    const allFilteredIds = filteredRS.map((r) => r.id);
+    const allSelected = allFilteredIds.every((id) =>
+      form.razon_social_ids.includes(id),
+    );
+    setForm((prev) => ({
+      ...prev,
+      razon_social_ids: allSelected
+        ? prev.razon_social_ids.filter((id) => !allFilteredIds.includes(id))
+        : [...new Set([...prev.razon_social_ids, ...allFilteredIds])],
+    }));
   };
 
   // ── Emails ──────────────────────────────────────
@@ -177,10 +212,10 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
         emails: form.emails,
         phones: form.phones,
         razon_social_ids: form.razon_social_ids,
-        ...(form.middle_name.trim() && {
+        ...(form.middle_name?.trim() && {
           middle_name: form.middle_name.trim(),
         }),
-        ...(form.second_last_name.trim() && {
+        ...(form.second_last_name?.trim() && {
           second_last_name: form.second_last_name.trim(),
         }),
         ...(form.password && { password: form.password }),
@@ -201,6 +236,13 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
       setLoading(false);
     }
   };
+
+  const allFilteredSelected =
+    filteredRS.length > 0 &&
+    filteredRS.every((r) => form.razon_social_ids.includes(r.id));
+  const someFilteredSelected = filteredRS.some((r) =>
+    form.razon_social_ids.includes(r.id),
+  );
 
   return (
     <Dialog
@@ -242,15 +284,13 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
           </Alert>
         )}
 
-        {/* ── Grid v2: sin item, xs, sm — usar size={{ xs, sm }} ── */}
         <Grid container spacing={2.5}>
-          {/* Datos personales */}
+          {/* ── Datos personales ── */}
           <Grid size={12}>
             <Typography
-              fontSize="0.8rem"
+              fontSize="0.78rem"
               fontWeight={600}
               color="text.secondary"
-              mb={1}
               textTransform="uppercase"
               letterSpacing={0.5}
             >
@@ -268,7 +308,6 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
               onChange={handleChange}
             />
           </Grid>
-
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
@@ -279,7 +318,6 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
               onChange={handleChange}
             />
           </Grid>
-
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
@@ -290,7 +328,6 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
               onChange={handleChange}
             />
           </Grid>
-
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
@@ -302,7 +339,6 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
             />
           </Grid>
 
-          {/* Username solo en edición */}
           {isEdit && (
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
@@ -317,17 +353,16 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
             </Grid>
           )}
 
-          {/* Cuenta */}
+          {/* ── Cuenta ── */}
           <Grid size={12}>
-            <Divider sx={{ my: 0.5 }} />
+            <Divider />
             <Typography
-              fontSize="0.8rem"
+              fontSize="0.78rem"
               fontWeight={600}
               color="text.secondary"
-              mt={1.5}
-              mb={1}
               textTransform="uppercase"
               letterSpacing={0.5}
+              mt={1}
             >
               Cuenta
             </Typography>
@@ -347,7 +382,7 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
                   <InputAdornment position="end">
                     <IconButton
                       size="small"
-                      onClick={() => setShowPass(!showPass)}
+                      onClick={() => setShowPass((s) => !s)}
                     >
                       {showPass ? (
                         <VisibilityOff fontSize="small" />
@@ -362,7 +397,6 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }}>
-            {/* ← Clave del fix: no renderizar hasta tener roles */}
             {loadingCats ? (
               <TextField
                 fullWidth
@@ -411,59 +445,275 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
             </Grid>
           )}
 
-          {/* Razón Social */}
-          {razones.length > 0 && (
-            <>
-              <Grid size={12}>
-                <Divider sx={{ my: 0.5 }} />
+          {/* ── Razón Social ── */}
+          <Grid size={12}>
+            <Divider />
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              mt={1}
+              mb={1}
+            >
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Business sx={{ fontSize: 16, color: "#6366f1" }} />
                 <Typography
-                  fontSize="0.8rem"
+                  fontSize="0.78rem"
                   fontWeight={600}
                   color="text.secondary"
-                  mt={1.5}
-                  mb={1}
                   textTransform="uppercase"
                   letterSpacing={0.5}
                 >
                   Razón Social
                 </Typography>
-              </Grid>
-              <Grid size={12}>
-                <TextField
-                  select
-                  fullWidth
+                {form.razon_social_ids.length > 0 && (
+                  <Chip
+                    label={`${form.razon_social_ids.length} seleccionada(s)`}
+                    size="small"
+                    sx={{
+                      fontSize: "0.7rem",
+                      bgcolor: "rgba(99,102,241,0.1)",
+                      color: "#6366f1",
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
+              </Stack>
+              {form.razon_social_ids.length > 0 && (
+                <Button
                   size="small"
-                  label="Razones Sociales"
-                  SelectProps={{ multiple: true }}
-                  value={form.razon_social_ids}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      razon_social_ids: e.target.value,
-                    }))
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, razon_social_ids: [] }))
                   }
+                  sx={{
+                    fontSize: "0.72rem",
+                    color: "#ef4444",
+                    minWidth: 0,
+                    p: 0.5,
+                  }}
                 >
-                  {razones.map((rs) => (
-                    <MenuItem key={rs.id} value={rs.id}>
-                      {rs.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </>
-          )}
+                  Limpiar
+                </Button>
+              )}
+            </Stack>
+          </Grid>
 
-          {/* Emails */}
           <Grid size={12}>
-            <Divider sx={{ my: 0.5 }} />
+            <Paper
+              variant="outlined"
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              {/* Search dentro del panel */}
+              <Box sx={{ p: 1.5, borderBottom: "1px solid #f0f0f0" }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Buscar razón social..."
+                  value={searchRS}
+                  onChange={(e) => setSearchRS(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search
+                          sx={{ fontSize: 16, color: "text.secondary" }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+
+              {/* Seleccionar todas */}
+              {!loadingCats && filteredRS.length > 0 && (
+                <Box
+                  onClick={handleSelectAllRS}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderBottom: "1px solid #f0f0f0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    cursor: "pointer",
+                    bgcolor: "#fafafa",
+                    "&:hover": { bgcolor: "#f3f4f6" },
+                  }}
+                >
+                  <Checkbox
+                    size="small"
+                    checked={allFilteredSelected}
+                    indeterminate={someFilteredSelected && !allFilteredSelected}
+                    onChange={handleSelectAllRS}
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                      "&.Mui-checked": { color: "#6366f1" },
+                      "&.MuiCheckbox-indeterminate": { color: "#6366f1" },
+                      p: 0,
+                    }}
+                  />
+                  <Typography
+                    fontSize="0.8rem"
+                    fontWeight={600}
+                    color="text.secondary"
+                  >
+                    {allFilteredSelected
+                      ? "Deseleccionar todas"
+                      : "Seleccionar todas"}
+                    <Typography
+                      component="span"
+                      fontSize="0.75rem"
+                      color="text.disabled"
+                      ml={0.75}
+                    >
+                      ({filteredRS.length})
+                    </Typography>
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Lista RS */}
+              <Box sx={{ maxHeight: 220, overflowY: "auto" }}>
+                {loadingCats ? (
+                  <Box sx={{ p: 2, textAlign: "center" }}>
+                    <CircularProgress size={20} sx={{ color: "#6366f1" }} />
+                  </Box>
+                ) : filteredRS.length === 0 ? (
+                  <Box sx={{ py: 3, textAlign: "center" }}>
+                    <Typography fontSize="0.85rem" color="text.secondary">
+                      {searchRS
+                        ? "No se encontraron RS"
+                        : "No hay razones sociales activas"}
+                    </Typography>
+                  </Box>
+                ) : (
+                  filteredRS.map((rs) => {
+                    const isChecked = form.razon_social_ids.includes(rs.id);
+                    return (
+                      <Box
+                        key={rs.id}
+                        onClick={() => handleToggleRS(rs.id)}
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1.5,
+                          cursor: "pointer",
+                          borderBottom: "1px solid #f5f5f5",
+                          bgcolor: isChecked
+                            ? "rgba(99,102,241,0.04)"
+                            : "transparent",
+                          "&:hover": {
+                            bgcolor: isChecked
+                              ? "rgba(99,102,241,0.07)"
+                              : "#f8f9ff",
+                          },
+                          transition: "background 0.1s",
+                        }}
+                      >
+                        <Checkbox
+                          size="small"
+                          checked={isChecked}
+                          onChange={() => handleToggleRS(rs.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            "&.Mui-checked": { color: "#6366f1" },
+                            p: 0,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 1,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: isChecked ? "#6366f1" : "#f1f5f9",
+                            transition: "background 0.15s",
+                          }}
+                        >
+                          <Typography
+                            fontSize="0.7rem"
+                            fontWeight={700}
+                            color={isChecked ? "#fff" : "#9ca3af"}
+                          >
+                            {rs.name?.[0]?.toUpperCase()}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          fontSize="0.85rem"
+                          fontWeight={isChecked ? 600 : 400}
+                          sx={{ flex: 1 }}
+                        >
+                          {rs.name}
+                        </Typography>
+                        {isChecked && (
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              bgcolor: "#6366f1",
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
+                      </Box>
+                    );
+                  })
+                )}
+              </Box>
+
+              {/* Footer contador */}
+              {form.razon_social_ids.length > 0 && (
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderTop: "1px solid #f0f0f0",
+                    bgcolor: "rgba(99,102,241,0.03)",
+                  }}
+                >
+                  <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                    {razones
+                      .filter((r) => form.razon_social_ids.includes(r.id))
+                      .map((r) => (
+                        <Chip
+                          key={r.id}
+                          label={r.name}
+                          size="small"
+                          onDelete={() => handleToggleRS(r.id)}
+                          sx={{
+                            fontSize: "0.7rem",
+                            height: 20,
+                            bgcolor: "rgba(99,102,241,0.1)",
+                            color: "#6366f1",
+                          }}
+                        />
+                      ))}
+                  </Stack>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* ── Emails ── */}
+          <Grid size={12}>
+            <Divider />
             <Typography
-              fontSize="0.8rem"
+              fontSize="0.78rem"
               fontWeight={600}
               color="text.secondary"
-              mt={1.5}
-              mb={1}
               textTransform="uppercase"
               letterSpacing={0.5}
+              mt={1}
             >
               Correos electrónicos
             </Typography>
@@ -524,17 +774,16 @@ export default function UserFormModal({ open, onClose, onSaved, user }) {
             )}
           </Grid>
 
-          {/* Teléfonos */}
+          {/* ── Teléfonos ── */}
           <Grid size={12}>
-            <Divider sx={{ my: 0.5 }} />
+            <Divider />
             <Typography
-              fontSize="0.8rem"
+              fontSize="0.78rem"
               fontWeight={600}
               color="text.secondary"
-              mt={1.5}
-              mb={1}
               textTransform="uppercase"
               letterSpacing={0.5}
+              mt={1}
             >
               Teléfonos
             </Typography>

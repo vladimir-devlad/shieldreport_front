@@ -218,7 +218,12 @@ export default function AdminSupervisorView() {
 
       {/* Buscador supervisores */}
       <Paper sx={{ p: 2, mb: 2.5, borderRadius: 3 }}>
-        <Stack direction="row" spacing={2}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          spacing={{ xs: 1, sm: 2 }}
+          sx={{ flex: 1, mr: 2 }}
+        >
           <TextField
             size="small"
             fullWidth
