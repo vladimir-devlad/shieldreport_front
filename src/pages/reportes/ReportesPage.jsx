@@ -29,6 +29,8 @@ import { getRazonesSociales } from "../../api/razonSocialApi";
 import { getReportes } from "../../api/reportesApi";
 
 const COLUMNS = [
+  { key: "dilacion", label: "Dilación", width: 100 },
+  { key: "pdv_razon_social", label: "Razón Social", width: 130 },
   { key: "sot", label: "SOT", width: 120 },
   { key: "fecha_fecgensot", label: "Fecha Gen.", width: 110 },
   { key: "hora_fecgensot", label: "Hora Gen.", width: 90 },
@@ -47,14 +49,14 @@ const COLUMNS = [
   { key: "tipopuntoventa", label: "Tipo PV", width: 110 },
   { key: "tipo_pdv", label: "Tipo PDV", width: 100 },
   { key: "pdv_region", label: "PDV Región", width: 110 },
-  { key: "codusu", label: "Cód. Usuario", width: 110 },
-  { key: "cargo", label: "Cargo", width: 110 },
-  { key: "area", label: "Área", width: 100 },
-  { key: "direccion", label: "Dirección", width: 160 },
+  // { key: "codusu", label: "Cód. Usuario", width: 110 },
+  // { key: "cargo", label: "Cargo", width: 110 },
+  // { key: "area", label: "Área", width: 100 },
+  // { key: "direccion", label: "Dirección", width: 160 },
   { key: "confirmacion", label: "Confirmación", width: 120 },
-  { key: "tipo_venta", label: "Tipo Venta", width: 110 },
+  // { key: "tipo_venta", label: "Tipo Venta", width: 110 },
   { key: "tipo_programacion", label: "Tipo Prog.", width: 120 },
-  { key: "dilacion", label: "Dilación", width: 100 },
+  // { key: "dilacion", label: "Dilación", width: 100 },
   { key: "usuario_venta", label: "Usuario Venta", width: 130 },
   { key: "ovenc_codigo", label: "OVenc Código", width: 120 },
 ];
@@ -161,6 +163,8 @@ export default function ReportesPage() {
       const allRows = responses.flatMap((r) => r.data.data ?? r.data);
 
       const rows = allRows.map((row) => ({
+        Dilación: row.dilacion ?? "",
+        "Razón Social": row.pdv_razon_social ?? "",
         SOT: row.sot ?? "",
         "Fecha Gen.": row.fecha_fecgensot ?? "",
         "Hora Gen.": row.hora_fecgensot ?? "",
@@ -179,14 +183,13 @@ export default function ReportesPage() {
         "Tipo PV": row.tipopuntoventa ?? "",
         "Tipo PDV": row.tipo_pdv ?? "",
         "PDV Región": row.pdv_region ?? "",
-        "Cód. Usuario": row.codusu ?? "",
-        Cargo: row.cargo ?? "",
-        Área: row.area ?? "",
-        Dirección: row.direccion ?? "",
+        // "Cód. Usuario": row.codusu ?? "",
+        // Cargo: row.cargo ?? "",
+        // Área: row.area ?? "",
+        // Dirección: row.direccion ?? "",
         Confirmación: row.confirmacion ?? "",
-        "Tipo Venta": row.tipo_venta ?? "",
+        // "Tipo Venta": row.tipo_venta ?? "",
         "Tipo Prog.": row.tipo_programacion ?? "",
-        Dilación: row.dilacion ?? "",
         "Usuario Venta": row.usuario_venta ?? "",
         "OVenc Código": row.ovenc_codigo ?? "",
       }));
@@ -230,7 +233,7 @@ export default function ReportesPage() {
       >
         <Box>
           <Typography variant="h5" fontWeight={700}>
-            Reportes SOT
+            Reportes SOT (Pendientes y Rechazados)
           </Typography>
           <Typography variant="body2" color="text.secondary" mt={0.25}>
             {total > 0

@@ -1,10 +1,10 @@
 import {
   Add,
   Delete,
-  Edit,
   PersonAdd,
   Refresh,
   Search,
+  Visibility,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -31,6 +31,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getRoles } from "../../api/rolesApi";
 import { deleteUser, getUsers } from "../../api/usersApi";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
@@ -62,6 +63,7 @@ export default function UsersPage() {
   const { hasRole } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const navigate = useNavigate();
 
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -384,12 +386,10 @@ export default function UsersPage() {
 
                       {hasRole("superadmin", "admin") && (
                         <Stack direction="column" spacing={0.25} flexShrink={0}>
-                          <Tooltip title="Editar">
+                          <Tooltip title="Ver detalle">
                             <IconButton
                               size="small"
-                              onClick={() =>
-                                setFormModal({ open: true, user: u })
-                              }
+                              onClick={() => navigate(`/users/${u.id}`)}
                               sx={{
                                 "&:hover": {
                                   color: "#6366f1",
@@ -397,7 +397,7 @@ export default function UsersPage() {
                                 },
                               }}
                             >
-                              <Edit fontSize="small" />
+                              <Visibility fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Asignar supervisor">
@@ -770,12 +770,10 @@ export default function UsersPage() {
                         <TableCell>
                           {hasRole("superadmin", "admin") && (
                             <Stack direction="row" spacing={0.5}>
-                              <Tooltip title="Editar">
+                              <Tooltip title="Ver detalle">
                                 <IconButton
                                   size="small"
-                                  onClick={() =>
-                                    setFormModal({ open: true, user: u })
-                                  }
+                                  onClick={() => navigate(`/users/${u.id}`)}
                                   sx={{
                                     "&:hover": {
                                       color: "#6366f1",
@@ -783,7 +781,7 @@ export default function UsersPage() {
                                     },
                                   }}
                                 >
-                                  <Edit fontSize="small" />
+                                  <Visibility fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Asignar supervisor">
