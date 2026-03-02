@@ -742,7 +742,7 @@ export default function AsignarRazonSocialPage() {
                           <Chip
                             label={
                               hasAll
-                                ? "Todo asignado"
+                                ? "Asignado"
                                 : hasSome
                                   ? "Parcial"
                                   : "Sin asignar"
