@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   IconButton,
   InputAdornment,
@@ -29,8 +28,8 @@ import { getRazonesSociales } from "../../api/razonSocialApi";
 import { getReportes } from "../../api/reportesApi";
 
 const COLUMNS = [
-  { key: "dilacion", label: "Dilación", width: 100 },
   { key: "pdv_razon_social", label: "Razón Social", width: 130 },
+  { key: "dilacion", label: "Dilación", width: 100 },
   { key: "sot", label: "SOT", width: 120 },
   { key: "fecha_fecgensot", label: "Fecha Gen.", width: 110 },
   { key: "hora_fecgensot", label: "Hora Gen.", width: 90 },
@@ -60,6 +59,17 @@ const COLUMNS = [
   { key: "usuario_venta", label: "Usuario Venta", width: 130 },
   { key: "ovenc_codigo", label: "OVenc Código", width: 120 },
 ];
+
+const getDilacionColor = (dilacion) => {
+  const val = dilacion?.toString().toUpperCase().trim();
+  if (val === "1 A 3 DIAS")
+    return { bgcolor: "rgba(16,185,129,0.08)", color: "#065f46" };
+  if (val === "4 A 7 DIAS")
+    return { bgcolor: "rgba(245,158,11,0.08)", color: "#92400e" };
+  if (val === "8 A MAS DIAS")
+    return { bgcolor: "rgba(239,68,68,0.08)", color: "#991b1b" };
+  return {};
+};
 
 const estadoSotColor = (estado) => {
   const map = {
@@ -409,73 +419,105 @@ export default function ReportesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                reportes.map((row, index) => (
-                  <TableRow
-                    key={row.id}
-                    sx={{
-                      "&:hover": { bgcolor: "#f8f9ff" },
-                      "&:last-child td": { border: 0 },
-                    }}
-                  >
-                    {/* # sticky */}
-                    <TableCell
+                reportes.map((row, index) => {
+                  const dilacionColors = getDilacionColor(row.dilacion);
+                  return (
+                    <TableRow
+                      key={row.id}
                       sx={{
-                        fontSize: "0.75rem",
-                        color: "text.secondary",
-                        position: "sticky",
-                        left: 0,
-                        bgcolor: "white",
-                        borderRight: "1px solid #e2e8f0",
-                        zIndex: 1,
+                        ...dilacionColors,
+                        "& td": { color: dilacionColors.color ?? "inherit" },
+                        "&:hover": { filter: "brightness(0.96)" },
+                        "&:last-child td": { border: 0 },
                       }}
                     >
-                      {page * rowsPerPage + index + 1}
-                    </TableCell>
+                      {/* # sticky */}
+                      <TableCell
+                        sx={{
+                          fontSize: "0.75rem",
+                          position: "sticky",
+                          left: 0,
+                          bgcolor: dilacionColors.bgcolor ?? "white", // ← sticky hereda el color
+                          // borderRight: "1px solid #e2e8f0",
+                          zIndex: 1,
+                          color: dilacionColors.color ?? "text.secondary",
+                        }}
+                      >
+                        {page * rowsPerPage + index + 1}
+                      </TableCell>
 
-                    {COLUMNS.map((col) => {
-                      const value = row[col.key] ?? "—";
-                      if (
-                        col.key === "estado_sot" ||
-                        col.key === "estado_agenda"
-                      ) {
-                        const colors = estadoSotColor(value);
+                      {COLUMNS.map((col) => {
+                        const value = row[col.key] ?? "—";
+                        // if (
+                        //   col.key === "estado_sot" ||
+                        //   col.key === "estado_agenda"
+                        // ) {
+                        //   const colors = estadoSotColor(value);
+                        //   return (
+                        //     <TableCell
+                        //       key={col.key}
+                        //       sx={{ whiteSpace: "nowrap" }}
+                        //     >
+                        //       {value !== "—" ? (
+                        //         <Chip
+                        //           label={value}
+                        //           size="small"
+                        //           sx={{
+                        //             ...colors,
+                        //             fontSize: "0.65rem",
+                        //             fontWeight: 800,
+                        //           }}
+                        //         />
+                        //       ) : (
+                        //         <Typography
+                        //           fontSize="0.75rem"
+                        //           color="text.secondary"
+                        //         >
+                        //           —
+                        //         </Typography>
+                        //       )}
+                        //     </TableCell>
+                        //   );
+                        // }
+                        if (
+                          col.key === "estado_sot" ||
+                          col.key === "estado_agenda"
+                        ) {
+                          const colors = estadoSotColor(value);
+                          return (
+                            <TableCell
+                              key={col.key}
+                              sx={{
+                                whiteSpace: "nowrap",
+                                fontSize: "0.8rem",
+                                fontWeight: 700,
+                                color:
+                                  value !== "—"
+                                    ? colors.color
+                                    : "text.secondary",
+                              }}
+                            >
+                              {value}
+                            </TableCell>
+                          );
+                        }
                         return (
                           <TableCell
                             key={col.key}
-                            sx={{ whiteSpace: "nowrap" }}
+                            sx={{
+                              fontSize: "0.8rem",
+                              whiteSpace: "nowrap",
+                              // La celda de dilación la resaltamos con bold
+                              fontWeight: col.key === "dilacion" ? 700 : 400,
+                            }}
                           >
-                            {value !== "—" ? (
-                              <Chip
-                                label={value}
-                                size="small"
-                                sx={{
-                                  ...colors,
-                                  fontSize: "0.65rem",
-                                  fontWeight: 600,
-                                }}
-                              />
-                            ) : (
-                              <Typography
-                                fontSize="0.75rem"
-                                color="text.secondary"
-                              >
-                                —
-                              </Typography>
-                            )}
+                            {value}
                           </TableCell>
                         );
-                      }
-                      return (
-                        <TableCell
-                          key={col.key}
-                          sx={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}
-                        >
-                          {value}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))
+                      })}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
