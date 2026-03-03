@@ -25,7 +25,7 @@ import { saveAs } from "file-saver";
 import { useCallback, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { getRazonesSociales } from "../../api/razonSocialApi";
-import { getReportes } from "../../api/reportesApi";
+import { getLastSync, getReportes } from "../../api/reportesApi";
 
 const COLUMNS = [
   { key: "pdv_razon_social", label: "Razón Social", width: 130 },
@@ -93,6 +93,8 @@ export default function ReportesPage() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
 
+  const [lastSync, setLastSync] = useState(null);
+
   // Filtros
   const [search, setSearch] = useState("");
   const [razonSocialId, setRazonSocialId] = useState("");
@@ -108,6 +110,21 @@ export default function ReportesPage() {
       .then(({ data }) => setRazonesSociales(data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    getLastSync()
+      .then(({ data }) => setLastSync(data.last_updated))
+      .catch(() => {});
+  }, []);
+
+  const getTimeAgo = (dateStr) => {
+    if (!dateStr) return null;
+    const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if (diff < 60) return "hace menos de 1 min";
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+    return `hace ${Math.floor(diff / 86400)} días`;
+  };
 
   const buildParams = useCallback(
     (pageOverride, limitOverride) => ({
@@ -251,33 +268,82 @@ export default function ReportesPage() {
               : "Consulta de reportes del sistema"}
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={
-            exporting ? (
-              <CircularProgress size={16} sx={{ color: "inherit" }} />
-            ) : (
-              <FileDownload />
-            )
-          }
-          disabled={exporting || loading}
-          onClick={handleExport}
-          sx={{
-            borderRadius: 2,
-            borderColor: "#e2e8f0",
-            color: "text.secondary",
-            whiteSpace: "nowrap",
-            "&:hover": {
-              borderColor: "#6366f1",
-              color: "#6366f1",
-              bgcolor: "rgba(99,102,241,0.06)",
-            },
-          }}
-        >
-          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-            {exporting ? "Exportando..." : "Exportar Excel"}
-          </Box>
-        </Button>
+
+        {/* Derecha: sync + exportar */}
+        <Stack alignItems="flex-end" spacing={1}>
+          {/* Indicador última actualización */}
+          {lastSync && (
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Box
+                sx={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  bgcolor: "#10b981",
+                  boxShadow: "0 0 0 2px rgba(16,185,129,0.25)",
+                }}
+              />
+              <Typography fontSize="0.75rem" color="text.secondary">
+                Actualizado{" "}
+                <Typography
+                  component="span"
+                  fontSize="0.75rem"
+                  fontWeight={600}
+                  color="text.primary"
+                >
+                  {getTimeAgo(lastSync)}
+                </Typography>
+                <Typography
+                  component="span"
+                  fontSize="0.7rem"
+                  color="text.disabled"
+                  ml={0.5}
+                >
+                  ·{" "}
+                  {new Date(lastSync).toLocaleString("es-PE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Typography>
+              </Typography>
+            </Stack>
+          )}
+
+          {/* Botón exportar */}
+          <Button
+            variant="outlined"
+            startIcon={
+              exporting ? (
+                <CircularProgress size={16} sx={{ color: "inherit" }} />
+              ) : (
+                <FileDownload />
+              )
+            }
+            disabled={exporting || loading}
+            onClick={handleExport}
+            sx={{
+              borderRadius: 2,
+              borderColor: "#e2e8f0",
+              color: "text.secondary",
+              whiteSpace: "nowrap",
+              "&:hover": {
+                borderColor: "#6366f1",
+                color: "#6366f1",
+                bgcolor: "rgba(99,102,241,0.06)",
+              },
+            }}
+          >
+            <Box
+              component="span"
+              sx={{ display: { xs: "none", sm: "inline" } }}
+            >
+              {exporting ? "Exportando..." : "Exportar Excel"}
+            </Box>
+          </Button>
+        </Stack>
       </Box>
 
       {/* Filtros */}
